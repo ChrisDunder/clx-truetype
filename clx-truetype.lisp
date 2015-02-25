@@ -127,14 +127,27 @@
           (floor (* (xlib:screen-height screen) 25.4)
                  (xlib:screen-height-in-millimeters screen))))
 
+;; Lifted from clx-cursor by Michael Filonenko
+;; https://github.com/filonenko-mikhail/clx-cursor, MIT license
+(defun friendly-get-resource (database path &optional default)
+  "Get resource value from @var{database} and @{path}. If value is not found, returns default."
+  (xlib:map-resource database (lambda (it-path value)
+                                (when (equal it-path path)
+                                  (return-from friendly-get-resource value))))
+  default)
+
 (defun screen-dpi (screen)
   "Returns current dpi for @var{screen}."
-  (values (getf (xlib:screen-plist screen) :dpi-x
-                (floor (* (xlib:screen-width screen) 25.4)
-                       (xlib:screen-width-in-millimeters screen)))
-          (getf (xlib:screen-plist screen) :dpi-y
-                (floor (* (xlib:screen-height screen) 25.4)
-                             (xlib:screen-height-in-millimeters screen)))))
+  (let ((dpi (parse-integer (friendly-get-resource screen '("Xft" "dpi") "")
+                            :junk-allowed t)))
+    (if dpi
+        (values dpi dpi)
+        (values (getf (xlib:screen-plist screen) :dpi-x
+                      (floor (* (xlib:screen-width screen) 25.4)
+                             (xlib:screen-width-in-millimeters screen)))
+                (getf (xlib:screen-plist screen) :dpi-y
+                      (floor (* (xlib:screen-height screen) 25.4)
+                             (xlib:screen-height-in-millimeters screen)))))))
 
 (defun (setf screen-dpi) (value screen)
   "Sets current dpi for @var{screen}."
